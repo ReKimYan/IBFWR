@@ -1,4 +1,4 @@
-# Integrated Blended Food Waste Refinery (IBFWR)
+# Integrated Blended Food Waste BioRefinery (IBFWR)
 
 A mixed-integer nonlinear programming (MINLP) framework for the optimal design of an **Integrated Blended Food Waste Refinery (IBFWR)** — a system that integrates conventional **food waste management** options (animal feed, composting, incineration, anaerobic digestion) with **biorefinery pathways** (biofuels and biochemicals) into a single optimisation framework.
 

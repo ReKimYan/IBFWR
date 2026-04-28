@@ -1,0 +1,845 @@
+#Sets
+set FoodWasteCategory := Bakery FruitVegetable Fish Meat Potato ; 
+set Macronutrients:= Carbohydrate Protein Lipid;
+set Components := Carbohydrate Protein Lipid Water glucose CO2 bioethanol Hexane Methanol H3PO4 FAME Na3PO4 Glycerol NaOH LacticAcid Methanol MethylLactate SuccinicAcid BDO O2 N2
+                  H2 Acetone Butanol AceticAcid ButyricAcid H2SO4 CH4 NH3 PZ MDEA;
+set Products := bioethanol FAME Glycerol Protein LacticAcid SuccinicAcid BDO H2 Acetone Butanol compost Feed CH4 electricity CO2;
+set Milling := grinding;
+set FWManagementOption := enzymatic-hydrolysis Composting AnimalFeed AnaerobicDigestion Incineration;
+set GlucoseUpgrading:= BiochemicalProcess BiofuelProcess;
+set Biofuels:= BioethanolProcess ButanolProcess;
+set Biochemicals:= LacticAcidProcess SuccinicAcidProcess BDOProcess;
+set NonGlucoseUpgrading := BiodieselProcess ProteinExtraction;
+set CarbonCapture := CCU;
+set Equipment := Crusher Pump Heater Autoclave Cooler Reactor Fermenter Centrifugal MS FlashDrum DT Reactor1 Extractor TranesterReactor Washer Neutralizer Evaporator Filtration
+                 Crystallizer Comp PSA Decant Digester Membrane HE Burner Turbine Economizer Cyclone Absorber;
+set Chemicals := Water enzymes Yeast Peptone AmmoniumSulphate MagnesiumSulphate PotassiumPhosphate CalciumChloride MagnesiumChloride SodiumPhosphate HydrocloricAcid 
+                 MagnesiumCarbonate SodiumHydroxide NatriumChloride Glucose AceticAcid ManganeseSulphate SodiumChloride IronSulphate;
+set Utility := cooling-water heat electricity chilling;
+set Emissions := CH4 CO2 N2O;
+set SocialImpact := DirectJobs IndirectJobs InducedJobs;
+
+# Parameters
+param Composition:
+                Carbohydrate   Protein   Lipid :=
+Bakery              0.72          0.11      0.17 
+FruitVegetable      0.54          0.31      0.15
+Fish                0.1           0.65      0.25
+Meat                0             0.76      0.24
+Potato              0.64          0.07      0.29;
+
+param Allowed: Bakery FruitVegetable Fish Meat Potato:=
+enzymatic-hydrolysis  1 1 1 1 1
+Composting            1 1 1 1 1
+AnimalFeed            1 1 0 0 1
+AnaerobicDigestion    1 1 1 1 1
+Incineration          1 1 1 1 1 
+;
+
+param BigM := 10000;
+
+param MinimumComposition :=
+Carbohydrate 0.40
+Protein 0.15
+Lipid 0.1;
+
+param FWPrice := 
+Bakery 100
+FruitVegetable 80
+Fish 120
+Meat 120
+Potato 80;
+
+param FWSupplyAvailability:=
+Bakery 1356
+FruitVegetable 2702
+Fish 265
+Meat 2211
+Potato 767;
+
+param CapacityFWManagement :=
+enzymatic-hydrolysis 2000; # tonne/day
+
+#Product & co-product price ($/tonne)
+param ProductSellingPrice := 
+bioethanol 980
+LacticAcid 5200
+SuccinicAcid 5000
+BDO 3000
+Butanol 2400
+H2 3000
+Acetone 990
+FAME 840
+Glycerol 650
+Protein 1500
+compost 19.6
+Feed 425
+CH4 2070
+electricity 0.35
+CO2 120;
+
+#product demand (tonne/day; kWh/day)
+param ProductDemand := 
+bioethanol 1053
+LacticAcid 1500
+SuccinicAcid 83
+BDO 17
+Butanol 307
+FAME 4220
+compost 6657
+Feed 3751
+CH4 262
+electricity 314600000;  
+
+#Chemical consumption
+#Pretreatment
+param ChemicalPretreatmentConsumption := 
+Water enzymatic-hydrolysis Pump 4
+enzymes enzymatic-hydrolysis Reactor 0.06;
+#Glucose upgrading
+#Chemical consumption
+#Pretreatment
+param ChemicalPretreatmentConsumption := 
+Water enzymatic-hydrolysis Pump 4
+enzymes enzymatic-hydrolysis Reactor 0.06;
+#Glucose upgrading
+param ChemicalBiofuelConsumption :=
+Yeast BioethanolProcess Fermenter 0.1202
+Peptone BioethanolProcess Fermenter 0.1202
+AmmoniumSulphate BioethanolProcess Fermenter 0.0962
+MagnesiumSulphate BioethanolProcess Fermenter 0.0801
+PotassiumPhosphate BioethanolProcess Fermenter 0.0481
+Yeast ButanolProcess Fermenter 0.083333333
+PotassiumPhosphate ButanolProcess Fermenter 0.0125
+AmmoniumSulphate ButanolProcess Fermenter 0.033333333
+SodiumChloride ButanolProcess Fermenter 0.016666667
+MagnesiumSulphate ButanolProcess Fermenter 0.003333333
+ManganeseSulphate ButanolProcess Fermenter 0.000166667
+IronSulphate ButanolProcess Fermenter 0.000166667;
+param ChemicalBiochemicalConsumption :=
+Yeast LacticAcidProcess Fermenter 0.01
+PotassiumPhosphate LacticAcidProcess Fermenter 0.0013
+AmmoniumSulphate LacticAcidProcess Fermenter 0.00985 
+CalciumChloride LacticAcidProcess Fermenter 0.000125
+MagnesiumChloride LacticAcidProcess Fermenter 0.001
+SodiumPhosphate LacticAcidProcess Fermenter 0.01085
+HydrocloricAcid SuccinicAcidProcess Fermenter 0.079
+MagnesiumCarbonate SuccinicAcidProcess Fermenter 0.273
+SodiumHydroxide SuccinicAcidProcess Fermenter  0.197
+NatriumChloride SuccinicAcidProcess Fermenter 15.07
+Yeast BDOProcess Fermenter 0.0036
+Glucose BDOProcess Fermenter 0.01448
+Peptone BDOProcess Fermenter 0.00724
+PotassiumPhosphate BDOProcess Fermenter 0.0029
+AceticAcid BDOProcess Fermenter 0.00724
+MagnesiumSulphate BDOProcess Fermenter 0.00116
+ManganeseSulphate BDOProcess Fermenter 0.00007;
+#NonGlucoseUpgrading
+param ChemicalConsumptionNonFermentation :=
+Hexane BiodieselProcess 1.240920734
+Methanol BiodieselProcess 0.217128995
+NaOH BiodieselProcess 0.01476059
+Water BiodieselProcess 0.0301
+H3PO4 BiodieselProcess 0.172281998
+Water ProteinExtraction 0.057
+NaOH ProteinExtraction 0.004;
+#Composting
+param ChemicalConsumptionComposting :=
+H2SO4 Composting 0.0021
+NaOH Composting 0.0001;
+#AnimalFeed
+param ChemicalConsumptionAnimalFeed :=
+Water AnimalFeed 0.00253;
+
+#Reaction and fraction data
+#Pretreatment
+param MolecularWeight:= 
+Carbohydrate 0.16214
+Protein 0.113
+Lipid 0.88543
+Water 0.01802 
+glucose 0.18016 ;
+param StoichiometricCoeff:=
+Carbohydrate -1
+Water -1 
+glucose 1;
+param ConversionFactor := 0.95;
+
+#Bioethanol 
+param MolecularWeightFermenter1 :=
+Water 0.01802 
+glucose 0.18016  
+bioethanol 0.04607 
+CO2 0.04401;
+param StoichiometricCoeffFermenter1:=
+glucose -1
+bioethanol 2 
+CO2 2;
+param ConversionFactorFermenter1 := 0.97;
+param RecoveryTopDT1 :=
+Water 0.033
+bioethanol 0.997;
+param RecoveryTopDT2 :=
+Water 0.4 
+bioethanol 1;
+param RecoveryProductMS:=
+Water 0.002
+bioethanol 1;
+
+#LacticAcid 
+param MolecularWeightFermenter4 :=
+Water 0.018 
+glucose 0.180   
+LacticAcid 0.090;
+param StoichiometricCoeffFermenter4:=
+glucose -1
+LacticAcid 2;
+param ConversionFactorFermenter4 := 0.95;
+param MolecularWeightReactor1 :=
+Water 0.018
+glucose 0.180   
+LacticAcid 0.090
+Methanol 0.032
+MethylLactate 0.104;
+param StoichiometricCoeffReactor1:=
+Methanol -1
+LacticAcid -1
+Water 1
+MethylLactate 1;
+param ConversionFactorReactor1 := 0.88;
+param MolecularWeightReactor2 :=
+Water 0.018  
+LacticAcid 0.090
+Methanol 0.032
+MethylLactate 0.104;
+param StoichiometricCoeffReactor2:=
+Methanol 1
+LacticAcid 1
+Water -1
+MethylLactate -1;
+param ConversionFactorReactor2 := 0.95;
+param RecoveryTopDT8 :=
+Water 0.998999703
+glucose 0
+LacticAcid 8.49527E-06;
+param MethanolRatio := 1.008942188;
+param WaterRatio := 0.438587367;
+param RecoveryBottomDT9 :=
+Water 6.43257E-07
+glucose 1
+LacticAcid 0.988633022
+Methanol 2.69E-08
+MethylLactate 2.43E-02;
+param RecoveryTopDT10 :=
+Water 0.000765815
+glucose 0
+LacticAcid 0
+Methanol 1
+MethylLactate 4.06549E-18;
+param RecoveryTopDT11 :=
+Water 0.97269511
+glucose 0
+LacticAcid 0.012807799
+Methanol 0.99692541
+MethylLactate 0.832358362;
+param RecoveryTopDT12 :=
+Water 0.2909598780
+glucose 0
+LacticAcid 7.31E-120
+Methanol 0.9999
+MethylLactate 0.626107425;
+param RecoveryTopDT13 :=
+Water 0.998719004
+glucose 0
+LacticAcid 2.23E-02
+Methanol 0.99981937
+MethylLactate 0.950404686;
+
+#Succinic Acid 
+param CO2ConsumptionSA := 0.209325; 
+param MolecularWeightFermenter5 :=
+Water 0.01802 
+glucose 0.18016 
+SuccinicAcid 0.11809
+CO2 0.04401;
+param StoichiometricCoeffFermenter5 :=
+glucose -1.167
+CO2 -1
+SuccinicAcid 2
+Water 1;
+param ConversionFactorFermenter5 := 1;
+param TopEvaporator := 
+Water 0.8601;
+
+#BDO
+param MolecularWeightFermenter2 :=
+Water 0.01802 
+glucose 0.18016
+N2 0.028
+O2 0.032
+CO2 0.044
+BDO 0.09012;
+param StoichiometricCoeffFermenter2 :=
+glucose -1
+O2 -0.5
+BDO 1 
+CO2 2
+Water 1
+N2 0;
+param ConversionFactorFermenter2 := 1;
+param TopFlashdrum2 :=
+glucose 0
+O2 0.917790898
+BDO 7.43E-05
+CO2 0.337
+Water 0.002
+N2 0.962;
+param TopgasDT3 := 
+glucose 0
+O2 0.9927
+BDO 0.0003
+CO2 0.9912
+Water 0.1545
+N2 0.9968;
+param TopliquidDT3 :=
+glucose 0
+O2 0.0073
+BDO 0.0135
+CO2 0.0088
+Water 0.8410
+N2 0.0032;
+param TopFlashdrum3 := 
+O2 1
+BDO 0
+CO2 1
+Water 0
+N2 1;
+param AirConsumptionBDO := 
+O2 BDOProcess Comp 0.016
+N2 BDOProcess Comp 0.052;
+
+#Butanol
+param MolecularWeightButanol :=
+glucose 0.180
+Water 0.018
+Acetone 0.058
+CO2 0.044
+H2 0.002016
+Butanol 0.074
+bioethanol 0.046
+AceticAcid 0.060
+ButyricAcid 0.088;
+param StoichiometricCoeffButanol1 :=
+glucose -1
+Water -1
+Acetone 1 
+CO2 3 
+H2 4; 
+param StoichiometricCoeffButanol2 :=
+glucose -1
+Butanol 1 
+CO2 2 
+Water 1;
+param StoichiometricCoeffButanol3 :=
+glucose -1
+bioethanol 2
+CO2 2;
+param StoichiometricCoeffButanol4:=
+glucose -1
+Water -2
+AceticAcid 2
+CO2 2
+H2 4; 
+param StoichiometricCoeffButanol5:=
+glucose -1
+ButyricAcid 1
+CO2 2
+H2 2;
+param ConversionFactorButanol1 := 0.27;
+param ConversionFactorButanol2 := 0.54;
+param ConversionFactorButanol3 := 0.045;
+param ConversionFactorButanol4 := 0.025;
+param ConversionFactorButanol5 := 0.019;
+param TopDT4 :=
+Water 0.0456
+glucose 0
+CO2 0
+bioethanol 0.9937
+H2 0
+Acetone 1
+Butanol 1
+AceticAcid 1
+ButyricAcid 0.1047;
+param TopDT5 :=
+Water 0.0006627594
+glucose 0
+CO2 0
+bioethanol 0.1698
+H2 0
+Acetone 0.99
+Butanol 0.0001
+AceticAcid 0
+ButyricAcid 0;
+param TopDT6 :=
+Water 0.0152
+glucose 0
+CO2 0
+bioethanol 0.99
+H2 0
+Acetone 1
+Butanol 0.0038
+AceticAcid 0
+ButyricAcid 0;
+param BottomDecant1 :=
+Water 0.4703
+glucose 0
+CO2 0
+bioethanol 0.0949
+H2 0
+Acetone 0
+Butanol 0.0112
+AceticAcid 0
+ButyricAcid 0.004;
+param BottomDT7 :=
+Water 0
+glucose 0
+CO2 0
+bioethanol 3.90E-12
+H2 0
+Acetone 0
+Butanol 1
+AceticAcid 0
+ButyricAcid 1;
+
+#Biodiesel
+param MolecularWeightTranesterReactor :=
+Lipid 0.88543 
+Methanol 0.0324 
+NaOH 0.04
+FAME 0.29649
+Glycerol 0.09209;
+param StoichiometricCoeffTranesterReactor :=
+Lipid -1 
+Methanol -3
+FAME 3 
+Glycerol 1;
+param ConversionFactorTranesterReactor := 0.826;
+param MolecularWeightNeutralizer :=
+NaOH 0.04
+H3PO4 0.09799518
+Water 0.01801528
+Na3PO4 0.16394067
+Methanol 0.03204216
+Glycerol 0.09209472;
+param StoichiometricCoeffNeutralizer :=
+NaOH -1 
+H3PO4 -0.333333333
+Water 1 
+Na3PO4 0.333333333;
+param ConversionFactorNeutralizer := 1;
+param RecoveryTopDT14 :=
+Lipid 0 
+Methanol 0.9754
+NaOH 0
+FAME 0
+Glycerol 0;
+param RecoveryBiodieselProduct :=
+Lipid 0 
+Methanol 1
+NaOH 0
+FAME 1
+Glycerol 0
+Water 1;
+param RecoveryTopDT16 :=
+Lipid 0.0013
+Methanol 1
+NaOH 0
+FAME 0
+Glycerol 0
+Water 0.8622;
+param RecoveryTopWasher :=
+Lipid 1 
+Methanol 0
+NaOH 0
+FAME 1
+Glycerol 0
+Water 0.044;
+
+#Protein extraction 
+param RecoveryFiltration :=
+Protein 0.038
+NaOH 1;
+
+#Composting
+param CompostYield :=
+compost 0.3;
+param EmissionComposting :=
+CH4 Composting 0.62; #kg/MT FW
+
+#AnimalFeed
+param FeedYield :=
+Feed 0.13;
+param EmissionAnimalFeed :=
+CO2 AnimalFeed 0.087
+CH4 AnimalFeed 1.60E-06
+N2O AnimalFeed 1.60E-07; #kg/MT FW
+
+#Anaerobic Digestion
+param MolecularWeightDigester :=
+Carbohydrate 0.16214
+Protein 0.113
+Lipid 0.88543
+Water 0.01802
+CO2 0.044
+CH4 0.016
+NH3 0.016023
+glucose 0.180   
+bioethanol 0.04607
+LacticAcid 0.090
+MethylLactate 0.104
+FAME 0.29649
+SuccinicAcid 0.11809
+Butanol 0.074
+AceticAcid 0.060
+ButyricAcid 0.088;
+param StoichiometricCoeffDigester1 :=
+Carbohydrate -1
+Water -1
+CO2 3
+CH4 3;
+param StoichiometricCoeffDigester2 :=
+Protein -1
+Water -3
+CO2 2.5
+CH4 2.5
+NH3 1;
+param StoichiometricCoeffDigester3 :=
+Lipid -1
+Water -28
+CO2 17
+CH4 40;
+param StoichiometricCoeffDigester4 :=
+glucose -1
+CO2 3
+CH4 3;
+param ConversionFactorDigester := 
+Carbohydrate 0.79
+Lipid 0.32
+Protein 0.64
+glucose 1;
+param Recoverymembrane1 :=
+CH4 0.9767
+CO2 0.265;
+param Recoverymembrane2 :=
+CH4 0.9761
+CO2 0.1698;
+
+#Incineration 
+param StoichiometricO2:= 
+Carbohydrate 1.185 
+Protein 1.63
+Lipid 2.895; # Stoichiometric O2 demand per kg macronutrient (MT O2/MT dry solid)
+param ExcessAirRatio := 1.1 #10% of excess
+N2 Incineration Comp 5.857;
+param MolecularWeightBurner :=
+Carbohydrate 0.16214
+Protein 0.113
+Lipid 0.88543
+Water 0.01802
+CO2 0.044
+O2 0.032
+N2 0.028;
+param StoichiometricCoeffReaction1:=
+Carbohydrate -1
+O2 -6
+Water 5
+CO2 6;
+param ConversionFactorBurner := 
+Carbohydrate 0.98
+Lipid 0.98
+Protein 0.98;
+param StoichiometricCoeffReaction2:=
+Protein -1
+O2 -5.75
+Water 3.5
+CO2 5
+N2 0.5;
+param StoichiometricCoeffReaction3:=
+Lipid -1
+O2 -80
+Water 52
+CO2 57;
+param LHVFW := 34531857; #KJ/MT
+param LHVSolidWaste := 39138880.99; #KJ/MT
+param EffBoiler := 1;
+param EffComb := 1;
+param EffTurbine := 0.263;
+param SpecificEnthalpySteam := 3312500; #KJ/MT (HPS at 60 bar and 454 oC)
+param SpecificEnthalpyWater := 104838;  #KJ/MT (Water at 1 bar and 25 oC)
+
+#CarbonCapture
+param SolventCCU := 
+Water 0.6
+PZ 0.215
+MDEA 0.185;
+param RecoveryTopAbsorber2 :=
+Water 0.0426
+PZ 0
+MDEA 0
+CO2 0.0273
+O2 1
+N2 1 
+CH4 1
+NH3 1;
+param TopDT18 := 
+Water 0.00005
+PZ 0
+MDEA 0
+CO2 1 ;
+
+#Technical score
+param TechnicalScore := 
+enzymatic-hydrolysis 1.86
+Composting 3
+AnimalFeed 3
+AnaerobicDigestion 3
+Incineration 3;
+
+param MaxTechnicalScore := 3;
+
+#CapitalInvestment
+#Base equipment cost ($)
+param Base_equipment_cost :=
+Crusher 100000
+Pump 35800
+Heater 111800
+Autoclave 159400
+Cooler 138700
+Reactor 1280000
+Centrifugal 150000
+FlashDrum 131200
+Fermenter 1280286
+DT 624900
+MS 126300
+Reactor1 1280286
+Extractor 317000
+TranesterReactor 317000
+Washer 317000
+Neutralizer 317000
+Evaporator 73100 
+Filtration 126300
+Crystallizer 296000
+Comp 127333
+Decant 84200
+PSA 1607460
+Digester 3525627
+Membrane 33950
+HE 154900
+Burner 4910000
+Turbine 690251
+Economizer 115400
+Absorber 55400;
+
+#Base reference mass (tonne/day)
+param Base_reference_mass:= 
+Crusher 148
+Pump 197
+Heater 297
+Autoclave 297
+Cooler 297
+Reactor 297
+Centrifugal 297
+FlashDrum 281
+Fermenter 281
+DT 258
+MS 61
+Reactor1 281.3
+Extractor 206
+TranesterReactor 206
+Washer 206
+Neutralizer 206
+Evaporator 1778 
+Filtration 61
+Crystallizer 118.8 
+Comp 13.55
+Decant 281
+PSA 206.4 
+Digester 8590.83
+Membrane 24
+HE 11721
+Burner 1080
+Turbine 89.88
+Economizer 89.88
+Absorber 206.18;
+
+#Sizing factor
+param sizing_factor:= 
+Crusher 0.6
+Pump 0.8
+Heater 0.7
+Autoclave 0.6
+Cooler 0.7
+Reactor 0.6
+Centrifugal 0.6
+FlashDrum 0.7
+Fermenter 0.6
+DT 0.6
+MS 0.6
+Reactor1 0.6
+Extractor 0.6
+TranesterReactor 0.6 
+Washer 0.7 
+Neutralizer 0.6
+Evaporator 0.6
+Filtration 0.6
+Crystallizer 0.6 
+Comp 0.6
+Decant 0.6
+PSA 0.6
+Digester 0.6
+Membrane 0.6
+HE 0.7
+Burner 0.6
+Turbine 0.6
+Economizer 0.7
+Absorber 0.6;
+
+#Capital investment factor
+param equipment_installation := 0.39;
+param instrumentation_control_system := 0.13;
+param process_piping := 0.13;
+param electrical_equipment := 0.1;
+param buildings := 0.29;
+param site_development := 0.1;
+param auxiliary_facilities := 0.55;
+param engineering := 0.32;
+param construction := 0.34;
+param constractor_fee := 0.05;
+param contingency := 0.1;
+param working_capital := 0.1;
+param land_use := 0.06;
+
+#profitability analysis
+param federal_tax_rate := 0.25;
+param discount_rate :=0.1;
+param macrs_percentage :=
+4 0.10 
+5 0.18 
+6 0.144 
+7 0.1152 
+8 0.0922
+9 0.0737
+10 0.0655 
+11 0.0655 
+12 0.0655 
+13 0.0655
+14 0.0328;
+
+#Utility ($/tonne)
+#Price
+param Utility_price :=
+electricity 0.077
+cooling-water 0.032
+heat 27
+chilling 4.77;
+#Pretreatment
+param raw_material_price := 
+Water 0.177
+enzymes 3080;
+#Chemical price
+param chemical_fermentation_Price :=
+Water 0
+enzymes 0
+Yeast 5.2  
+Peptone 5.2
+AmmoniumSulphate 100
+MagnesiumSulphate 180
+PotassiumPhosphate 1200
+CalciumChloride 100
+MagnesiumChloride 100
+SodiumPhosphate 100
+HydrocloricAcid 65
+MagnesiumCarbonate 500
+SodiumHydroxide 400
+NatriumChloride 0.25
+Glucose 300
+AceticAcid 7.24
+ManganeseSulphate 0.07
+SodiumChloride 0.25
+IronSulphate 180;
+param chemical_nonfermentation_Price := 
+NaOH 135
+Methanol 490
+Water 0.177
+H3PO4 1050; 
+param chemical_composting_Price :=
+H2SO4 63
+NaOH 135;
+param chemical_AnimalFeed_Price :=
+Water 0.177; 
+
+#GWP (kgCO2-eq/tonne; kgCO2-eq/kWh)
+#Utility
+param GWPutility := 
+electricity 0.3084
+cooling-water 0.057
+heat 287
+chilling 55.014;
+
+#Chemical (kgCO2-eq/tonne)
+param GWPchemical:=
+Water 0.329
+enzymes 1200
+Yeast 3165
+Peptone 2055
+MagnesiumSulphate 1047
+PotassiumPhosphate 914
+Glucose 1322
+AmmoniumSulphate 1174
+AceticAcid 1658
+IronSulphate 166
+ManganeseSulphate 819
+SodiumChloride 271
+AmmoniumSulphate 1174
+HydrocloricAcid 581
+MagnesiumCarbonate 3128
+SodiumHydroxide 865
+NatriumChloride 125
+CalciumChloride 494
+MagnesiumChloride 3025
+SodiumPhosphate 2801;
+param GWPchemicalNonFermentation := 
+Methanol 697
+NaOH 1202
+H3PO4 1238;
+param GWPchemicalComposting :=
+H2SO4 107
+NaOH 1204;
+#Direct Emission 
+param GWPDirectEmission := 
+CH4 36000
+CO2 1000
+N2O 298000;
+
+#Credit (kgCO2-eq/tonne)
+param GWPProduct := 
+bioethanol 1246
+BDO 4671
+Butanol 2367
+H2 1609
+Acetone 2418
+SuccinicAcid 3272
+LacticAcid 4538
+FAME 485
+Glycerol 2496
+Protein 1550
+electricity 0.3084
+compost 3
+CH4 124
+CO2 0
+Feed 589;
+
+param JobGenerationMultiplier :=
+DirectJobs 7.4 
+IndirectJobs 5 
+InducedJobs 12.4;

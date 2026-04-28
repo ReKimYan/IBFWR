@@ -6,15 +6,15 @@ The model is built in Python with [Pyomo](http://www.pyomo.org/) and solved with
 
 The framework supports a triple-bottom-line analysis through three simultaneous objectives:
 
-- 💰 **Economic** — Net Present Value (NPV)
-- 🌍 **Environmental** — Global Warming Potential savings (GWP)
-- 👥 **Social** — Job creation potential (Social Impact, SI)
+- Economic** — Net Present Value (NPV)
+- Environmental** — Global Warming Potential savings (GWP)
+- Social** — Job creation potential (Social Impact, SI)
 
 The Pareto front of optimal trade-offs is generated using the **augmented ε-constraint method**.
 
 ---
 
-## 🏗️ Object-Oriented Design
+## Object-Oriented Design
 
 The model follows an **object-oriented programming (OOP)** approach. Each major part of the IBFWR is encapsulated in its own class, all operating on a single shared Pyomo `AbstractModel` instance. This makes the code modular, easy to extend, and easy to debug.
 
@@ -53,7 +53,7 @@ Each class takes the shared model as input, attaches its own constraints, and re
 
 ---
 
-## 🗺️ Repository Structure
+## Repository Structure
 
 ```
 .
@@ -75,7 +75,7 @@ Each class takes the shared model as input, attaches its own constraints, and re
 
 ---
 
-## ⚙️ Methodology
+## Methodology
 
 ### 1. The MINLP Model
 
@@ -107,7 +107,7 @@ subject to   GWP_saving  ≤  ε_GWP
 
 ---
 
-## 🌱 Model Coverage
+## Model Coverage
 
 ### Food waste categories
 Bakery, fruit & vegetable, fish, meat, potato.
@@ -133,7 +133,7 @@ Amine-based absorption with PZ/MDEA solvent, distillation regeneration, and comp
 
 ---
 
-## 📈 Outputs
+## Outputs
 
 For every point in the ε-constraint grid, the model reports:
 
@@ -146,13 +146,13 @@ For every point in the ε-constraint grid, the model reports:
 
 ---
 
-## 📚 References
+## References
 
 To be updated upon publication.
 
 ---
 
-## 🛠️ Dependencies
+## Dependencies
 
 | Package | Purpose |
 |---------|---------|
@@ -163,7 +163,7 @@ To be updated upon publication.
 
 ---
 
-## 👤 Author
+## Author
 
 Developed by **Rendra Hakim Hafyan**
 📧 [r.hafyan@surrey.ac.uk](mailto:r.hafyan@surrey.ac.uk)

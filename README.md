@@ -163,15 +163,6 @@ To be updated upon publication.
 
 ---
 
-## Author
-
-Developed by **Rendra Hakim Hafyan**
-📧 [r.hafyan@surrey.ac.uk](mailto:r.hafyan@surrey.ac.uk)
-
-For questions, feedback, or collaboration enquiries, please get in touch.
-
----
-
 ## 📄 License
 
 This project is released for academic and research purposes.

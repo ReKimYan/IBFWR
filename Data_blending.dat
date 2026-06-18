@@ -472,17 +472,17 @@ NaOH 1;
 
 #Composting
 param CompostYield :=
-compost 0.3;
+compost 0.3;#MT/MT FW
 param EmissionComposting :=
-CH4 Composting 0.62; #kg/MT FW
+CH4 Composting 0.00062; #MT/MT FW
 
 #AnimalFeed
 param FeedYield :=
-Feed 0.13;
+Feed 0.13; #MT/MT FW
 param EmissionAnimalFeed :=
-CO2 AnimalFeed 0.087
-CH4 AnimalFeed 1.60E-06
-N2O AnimalFeed 1.60E-07; #kg/MT FW
+CO2 AnimalFeed 0.000087
+CH4 AnimalFeed 1.60E-09
+N2O AnimalFeed 1.60E-10; #MT/MT FW
 
 #Anaerobic Digestion
 param MolecularWeightDigester :=

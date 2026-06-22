@@ -98,21 +98,6 @@ class OperatingCostModel:
                                                      model.Chemical_cost_Butanol + model.Chemical_cost_Biodiesel + model.Chemical_cost_Protein + model.Chemical_cost_Composting + model.Chemical_cost_AnimalFeed) * 300
         model.total_raw_material_cost_constraint = Constraint(rule=total_raw_material_cost_rule)
         
-        #-------------------------------- 
-        #Collection, sorting and screening, and other cost 
-        #--------------------------------
-        def Collection_cost_rule(model):
-             return model.total_collection_cost == sum(model.Fmill_component[n, 'grinding', 'Crusher'] for n in model.Macronutrients) * 200 * 300#$/tonne
-        model.total_collection_cost_constraint = Constraint(rule=Collection_cost_rule)
-        
-        #def Sorting_cost_rule(model):
-            #return model.total_sorting_cost == sum(model.Fmill_component[n, 'grinding', 'Crusher'] for n in model.Macronutrients) * 41 *300#$/tonne
-        #model.total_sorting_cost_constraint = Constraint(rule=Sorting_cost_rule)
-        
-        #def Other_cost_rule(model):
-           # return model.total_other_cost == sum(model.Fmill_component[n, 'grinding', 'Crusher'] for n in model.Macronutrients) * 41 *300 #$/tonne
-       # model.total_other_cost_constraint = Constraint(rule=Other_cost_rule)
-        
         # --------------------------------
         # Direct manufacturing cost
         # --------------------------------

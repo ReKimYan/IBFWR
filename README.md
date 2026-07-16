@@ -94,9 +94,9 @@ The IBFWR is described as a mixed-integer nonlinear program with:
 The augmented ε-constraint method is used:
 
 ```
-maximize     NPV − ρ · (SI / SI*  +  GWP_emission / GWP*)
-subject to   GWP_saving  ≤  ε_GWP
-             SI          ≤  ε_SI
+maximize     NPV 
+subject to   GWP_saving  >=  ε_GWP
+             SI          >=  ε_SI
              [all biorefinery constraints]
 ```
 

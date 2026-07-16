@@ -44,50 +44,74 @@ def main():
     FWManagementModel(model)
     CarbonCaptureModel(model)
     CostModel(model)
-    MOOModel(model)
+    MOOModel(model)   # defines npv, GWPSavings, SIA (physics + economics only)
 
-    # ---------------------------
-    # 2. EPSILON CONSTRAINTS
-    # ---------------------------
-    model.epsilon_param_GWPsaving = Param(within=Reals, mutable=True)
-    model.epsilon_param_SI = Param(within=Reals, mutable=True)
+    # =========================================================
+    # 2. AUGMECON  -  THREE-OBJECTIVE MAXIMIZATION FORMULATION
+    # =========================================================
+    #   max  NPV                         (main objective)
+    #   s.t. GWPSavings >= eps_GWP        (LCA,  converted objective)
+    #        SIA        >= eps_SI         (jobs, converted objective)
+    # ---------------------------------------------------------
 
-    rho = 1e-4
+    # (a) swept epsilon levels  -  values set inside the loop
+    model.eps_GWP = Param(within=Reals, mutable=True, initialize=0.0)
+    model.eps_SI  = Param(within=Reals, mutable=True, initialize=0.0)
 
-    model.GWP_emission_constraint = Constraint(
-        expr=(model.GWPcredit - (
-            model.GWPelectricity + model.GWPcoolingwater +
-            model.GWPheat + model.GWPchilling +
-            model.GWPchemicalLCA + model.GWPEmissionDirect
-        )) <= model.epsilon_param_GWPsaving
+    # (b) normalization scales = single-objective maxima (known)
+    model.r_GWP = Param(initialize=902000.0)   # LCA (GWPSavings) max
+    model.r_SI  = Param(initialize=38200.0)    # job generation max
+
+    # (c) non-negative slacks
+    model.s_GWP = Var(within=NonNegativeReals)
+    model.s_SI  = Var(within=NonNegativeReals)
+
+    # (d) epsilon-constraints in slack (equality) form
+    model.eps_con_GWP = Constraint(
+        expr=model.GWPSavings - model.s_GWP == model.eps_GWP
+    )
+    model.eps_con_SI = Constraint(
+        expr=model.SIA - model.s_SI == model.eps_SI
     )
 
-    model.job_generation_constraint = Constraint(
-        expr=model.SIA <= model.epsilon_param_SI
-    )
-
-    model.NPV_objective = Objective(
-        expr=model.npv - rho * (model.SIA/31704 + model.GWPEmissionDirect/890537),
+    # (e) augmented objective: maximize NPV, reward the slacks
+    model.aug = Param(initialize=1e-3)
+    model.AUGMECON_obj = Objective(
+        expr=model.npv + model.aug * (model.s_GWP / model.r_GWP +
+                                      model.s_SI  / model.r_SI),
         sense=maximize
     )
 
     # ---------------------------
-    # 3. DATA + SOLVER
+    # 3. DATA + INSTANCE
     # ---------------------------
     data = DataPortal()
     data.load(filename="Data_blending.dat", model=model)
     instance = model.create_instance(data)
 
+    # ---------------------------
+    # 4. SOLVER
+    # ---------------------------
     opt = SolverFactory("scip")
     opt.options["limits/gap"] = 0.02
     opt.options["limits/time"] = 120
 
     # ---------------------------
-    # 4. GRID (REDUCED)
+    # 5. EPSILON GRID
     # ---------------------------
+    # Upper ends = single-objective maxima you already computed.
+    GWP_MAX = 902000.0    # LCA (GWPSavings) single-objective max
+    SI_MAX  = 38200.0     # job generation single-objective max
+
+    # Lower ends: start at 0 so the first points recover the max-NPV corner.
+    # If GWPSavings at max-NPV is negative, set GWP_MIN below 0 to keep that
+    # part of the front (SI_MIN can stay 0, jobs cannot be negative).
+    GWP_MIN = 0.0
+    SI_MIN  = 0.0
+
     steps = 10
-    eps_GWP = np.linspace(1000, 20000, steps)
-    eps_SI = np.linspace(1000, 31704, steps)
+    eps_GWP = np.linspace(GWP_MIN, GWP_MAX, steps)
+    eps_SI  = np.linspace(SI_MIN,  SI_MAX,  steps)
 
     csv_file = "live_results_log.csv"
 
@@ -97,15 +121,15 @@ def main():
     all_results = []
 
     # ---------------------------
-    # 5. LOOP
+    # 6. LOOP
     # ---------------------------
     for g in eps_GWP:
         for s in eps_SI:
 
             print(f"\nSolving GWP={g:.0f}, SI={s:.0f}")
 
-            instance.epsilon_param_GWPsaving.set_value(g)
-            instance.epsilon_param_SI.set_value(s)
+            instance.eps_GWP.set_value(g)
+            instance.eps_SI.set_value(s)
 
             start_time = time.time()
             results = opt.solve(instance, tee=False)
@@ -135,6 +159,8 @@ def main():
                 "NPV": safe_value(instance.npv),
                 "GWPsaving": safe_value(instance.GWPSavings),
                 "SI": safe_value(instance.SIA),
+                "slack_GWP": safe_value(instance.s_GWP),
+                "slack_SI": safe_value(instance.s_SI),
                 "BDO": safe_value(instance.TotalBDO),
                 "LA": safe_value(instance.TotalLA),
                 "SA": safe_value(instance.TotalSA),
@@ -194,12 +220,14 @@ def main():
             # ---------------------------
             # OPTIONAL SPEED BREAK
             # ---------------------------
+            # Both sweeps ascend, so once a row is infeasible the tighter
+            # SI points above it will be too -> skip the rest of the row.
             if not is_feasible:
-                print("? Infeasible region, skipping rest of this row")
+                print("Infeasible region, skipping rest of this row")
                 break
 
     # ---------------------------
-    # 6. FINAL SAVE
+    # 7. FINAL SAVE
     # ---------------------------
     df_all = pd.DataFrame(all_results)
     df_all.to_excel("Final_MOO_Analysis.xlsx", index=False)
